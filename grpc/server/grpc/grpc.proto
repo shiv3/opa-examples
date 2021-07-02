@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package server;
+
+option go_package = "grpc/grpcpb";
+
+service GPRCServiceAPI {
+  rpc Ping(PingRequest) returns (PingResponse);
+
+  rpc ShowUser(ShowUserRequest) returns (ShowUserResponse);
+  rpc ShowUsers(ShowUsersRequest) returns (ShowUsersResponse);
+  rpc RegistUser(RegistUserRequest) returns (RegistUserResponse);
+}
+
+message User {
+  int64 id = 1;
+  string  name = 2;
+  string  email = 3;
+}
+
+
+message PingRequest {
+  string message = 1;
+}
+
+message PingResponse {
+  string message = 1;
+}
+
+message ShowUserRequest {
+  int64 id = 1;
+}
+
+message ShowUserResponse {
+  User user = 1;
+}
+
+message ShowUsersRequest {}
+
+message ShowUsersResponse {
+  repeated User users = 1;
+}
+
+message RegistUserRequest {
+  User user = 1;
+}
+
+message  RegistUserResponse {}
