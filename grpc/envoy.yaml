@@ -35,7 +35,7 @@ static_resources:
               with_request_body:
                 allow_partial_message: true
                 max_request_bytes: 1024
-#                pack_as_bytes: true
+                pack_as_bytes: true
           - name: envoy.filters.http.router
 
   clusters:

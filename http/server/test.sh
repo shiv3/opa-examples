@@ -1,4 +1,4 @@
-curl --location --request POST 'http://localhost:1323/user/1' \
+curl --location --request POST 'http://localhost:8080/user/1' \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "id": 1,
@@ -7,11 +7,10 @@ curl --location --request POST 'http://localhost:1323/user/1' \
 }'
 
 
-curl --location --request POST 'http://localhost:1323/user/2' \
+curl --location --request POST 'http://localhost:8080/user/2' \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "id": 2,
     "name": "test user 2",
     "email": "test2@test.com"
 }'
-

@@ -12,10 +12,13 @@ services:
     ports:
       - "9191:9191"
     command:
-      - run
-      - --server
-      - --config-file=/opa.yaml
-      - /policy.rego
+      - "run"
+      - "--log-level=debug"
+      - "--log-format=json-pretty"
+      - "--server"
+      - "--set=plugins.envoy_ext_authz_grpc.path=envoy/authz/allow"  # default value
+      - "--set=decision_logs.console=true"
+      - "/policy.rego"
     volumes:
       - ./policy.rego:/policy.rego
       - ./opa.yaml:/opa.yaml

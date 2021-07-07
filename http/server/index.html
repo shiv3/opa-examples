@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<title>OPA Example Page</title>
+<script type="module">
+    import { html, Component, render } from 'https://unpkg.com/htm/preact/standalone.module.js';
+
+    class App extends Component {
+        async getUser() {
+            const { users = [] } = this.state;
+            let ret = await fetch("http://localhost:8080/user", {})
+            this.setState({ users: users.concat(`User ${users.length}`) });
+        }
+        render({ page }, { users = [] }) {
+            return html`
+          <div class="app">
+            <${Header} name="OPA Example(${page})" />
+            <ul>
+              ${users.map(todo => html`
+                <li key="${todo}">${todo}</li>
+              `)}
+            </ul>
+            <button onClick=${() => this.getUser()}>getUser</button>
+            <${Footer}>footer content here<//>
+          </div>
+        `;
+        }
+    }
+
+    const Header = ({ name }) => html`<h1>${name}</h1>`
+    const Footer = props => html`<footer ...${props} />`
+
+    render(html`
+        <${App} page="for http" />
+    `, document.body);
+</script>
+</html>

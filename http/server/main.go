@@ -1,7 +1,18 @@
 package main
 
+//go:generate sqlite3 schema/models.sqlite < schema/ddl.sql
+//go:generate sqlboiler sqlite3
+
 import (
+	"context"
+	"database/sql"
 	"github.com/labstack/echo"
+	"github.com/labstack/gommon/log"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/shiv3/opa-examples/http/server/models"
+	"github.com/volatiletech/sqlboiler/boil"
+	"github.com/volatiletech/sqlboiler/queries/qm"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 )
@@ -14,14 +25,8 @@ func ping(c echo.Context) error {
 	return c.JSON(http.StatusOK, Ping{Status: "pong"})
 }
 
-type User struct {
-	ID    int    `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
-}
-
 type TestServer struct {
-	Users []*User
+	db *sql.DB
 }
 
 func (s *TestServer) showUser(c echo.Context) error {
@@ -29,57 +34,85 @@ func (s *TestServer) showUser(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	if _, u := s.getUser(id); u != nil {
-		return c.JSON(http.StatusOK, u)
+
+	users, err := models.Users(qm.Where("id = ?", int64(id))).One(context.Background(), s.db)
+	if err == sql.ErrNoRows {
+		return c.NoContent(http.StatusNotFound)
+	}
+
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	if users != nil {
+		return c.JSON(http.StatusOK, users)
 	}
 
 	return c.NoContent(http.StatusNotFound)
 }
-func (s *TestServer) getUser(id int) (int, *User) {
-	for i, u := range s.Users {
-		if u.ID == id {
-			return i, u
-		}
-	}
-	return 0, nil
-}
 
 type showUsersResponse struct {
-	Users []*User `json:"users"`
+	Users []*models.User `json:"users"`
 }
 
 func (s *TestServer) showUsers(c echo.Context) error {
-	return c.JSON(http.StatusOK, showUsersResponse{Users: s.Users})
+	users, err := models.Users().All(context.Background(), s.db)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	return c.JSON(http.StatusOK, showUsersResponse{Users: users})
 }
 
 func (s *TestServer) registUser(c echo.Context) error {
-	u := new(User)
-	if err := c.Bind(u); err != nil {
-		return err
-	}
-	var err error
-	u.ID, err = strconv.Atoi(c.Param("id"))
+	tx, err := s.db.BeginTx(context.Background(), nil)
 	if err != nil {
 		return err
 	}
-	if i, user := s.getUser(u.ID); user != nil {
-		s.Users[i] = u
-	} else {
-		s.Users = append(s.Users, u)
+	defer tx.Rollback()
+
+	u := new(models.User)
+	if err := c.Bind(u); err != nil {
+		return err
 	}
+	if err := u.Insert(context.Background(), tx, boil.Infer()); err != nil {
+		log.Error(err)
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		log.Error(err)
+		return err
+	}
+
 	return c.JSON(http.StatusOK, u)
 }
 
+func index(c echo.Context) error {
+	bytes, err := ioutil.ReadFile("./index.html")
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	return c.Blob(http.StatusOK, "text/html", bytes)
+}
+
 func main() {
+	db, err := sql.Open("sqlite3", "schema/models.sqlite")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	e := echo.New()
 	s := TestServer{
-		Users: []*User{},
+		db: db,
 	}
+
+	e.Logger.SetLevel(log.DEBUG)
 
 	e.GET("/ping", ping)
 	e.POST("/user/:id", s.registUser)
 	e.GET("/user/:id", s.showUser)
 	e.GET("/users", s.showUsers)
-
+	//e.GET("/", index)
 	e.Logger.Fatal(e.Start(":8080"))
 }

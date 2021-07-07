@@ -17,6 +17,7 @@ services:
       - --config-file=/opa.yaml
       - /policy.rego
     volumes:
+      - ./server/grpc/grpc.pb:/grpc.pb
       - ./policy.rego:/policy.rego
       - ./opa.yaml:/opa.yaml
   app:
