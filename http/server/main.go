@@ -12,7 +12,6 @@ import (
 	"github.com/shiv3/opa-examples/http/server/models"
 	"github.com/volatiletech/sqlboiler/boil"
 	"github.com/volatiletech/sqlboiler/queries/qm"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 )
@@ -21,6 +20,7 @@ type Ping struct {
 	Status string
 }
 
+//ping health check用途のエンドポイント
 func ping(c echo.Context) error {
 	return c.JSON(http.StatusOK, Ping{Status: "pong"})
 }
@@ -29,6 +29,7 @@ type TestServer struct {
 	db *sql.DB
 }
 
+//showUser リクエストされたUserIDを返す
 func (s *TestServer) showUser(c echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -55,6 +56,7 @@ type showUsersResponse struct {
 	Users []*models.User `json:"users"`
 }
 
+//showUsers DBにある全Userを返す
 func (s *TestServer) showUsers(c echo.Context) error {
 	users, err := models.Users().All(context.Background(), s.db)
 	if err != nil {
@@ -64,6 +66,7 @@ func (s *TestServer) showUsers(c echo.Context) error {
 	return c.JSON(http.StatusOK, showUsersResponse{Users: users})
 }
 
+//registUser リクエストされたUserを登録する
 func (s *TestServer) registUser(c echo.Context) error {
 	tx, err := s.db.BeginTx(context.Background(), nil)
 	if err != nil {
@@ -87,15 +90,6 @@ func (s *TestServer) registUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, u)
 }
 
-func index(c echo.Context) error {
-	bytes, err := ioutil.ReadFile("./index.html")
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	return c.Blob(http.StatusOK, "text/html", bytes)
-}
-
 func main() {
 	db, err := sql.Open("sqlite3", "schema/models.sqlite")
 	if err != nil {
@@ -113,6 +107,5 @@ func main() {
 	e.POST("/user/:id", s.registUser)
 	e.GET("/user/:id", s.showUser)
 	e.GET("/users", s.showUsers)
-	//e.GET("/", index)
 	e.Logger.Fatal(e.Start(":8080"))
 }
