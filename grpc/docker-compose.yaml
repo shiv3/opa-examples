@@ -16,6 +16,8 @@ services:
       - --server
       - --config-file=/opa.yaml
       - /policy.rego
+    environment:
+      - JWT_CERT=AAAAAAAAAAAAAAAAAAAAAAAAAAAAA
     volumes:
       - ./server/grpc/grpc.pb:/grpc.pb
       - ./policy.rego:/policy.rego

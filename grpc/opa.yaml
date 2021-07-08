@@ -1,7 +1,7 @@
 plugins:
   envoy_ext_authz_grpc:
     addr: ":9191"
-    path: envoy/authz/allow
+    path: grpc/authz/allow
     dry-run: false
     enable-reflection: true
     proto-descriptor: /grpc.pb

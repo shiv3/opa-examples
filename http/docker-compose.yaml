@@ -13,9 +13,13 @@ services:
       - "9191:9191"
     command:
       - run
+      - "--log-level=debug"
+      - "--log-format=json-pretty"
       - --server
       - --config-file=/opa.yaml
       - /policy.rego
+    environment:
+      - JWT_CERT=AAAAAAAAAAAAAAAAAAAAAAAAAAAAA
     volumes:
       - ./policy.rego:/policy.rego
       - ./opa.yaml:/opa.yaml

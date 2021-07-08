@@ -1,56 +1,52 @@
-package envoy.authz
+package grpc.authz
 
 default allow = false
 
 allow {
-  # for test.KitchenSink/Ping, we don't require anything
   input.parsed_path = ["server.GPRCServiceAPI","Ping"]
   input.parsed_body = {
     "message": "ping"
   }
 }
 
-allow {
-  input.parsed_path = ["server.GPRCServiceAPI", "ShowUser"]
-  input.parsed_body = {
-    "neededNumA": 1.23,
-    "neededNumB": 1.23,
-    "opaqueId": "asdf",
-    "person": {
-      "id": "123",
-      "name": "alice",
-      "parent": {
-        "id": "122",
-        "name": "bob"
-      }
-    },
-    "state": "AWAITING_INPUT",
-    "wk": {
-      "bigId": "101",
-      "bigInt": "2",
-      "bool": true,
-      "bytes": "AAAA",
-      "double": 0.12,
-      "float": 0.12,
-      "list": [
-        "zero",
-        "one",
-        "infinity"
-      ],
-      "neat": {
-        "@type": "googleapis.com/google.protobuf.StringValue",
-        "value": "Hithere"
-      },
-      "now": "2020-12-02T09:48:42.118723Z",
-      "object": {
-        "foo": "bar"
-      },
-      "period": "30s",
-      "smallId": 100,
-      "smallInt": 1,
-      "string": "abcd",
-      "value": "string"
+# user_idが正数であることをチェック
+user_id_check := user_id {
+    some user_id_string
+    input.parsed_body = {
+    	"id": user_id_string # リクエストパスのuser_idを取得
     }
-  }
+    user_id := to_number(user_id_string) # user_idをnumberに
+    is_number(user_id) # user_idがnumberかを確認
+    user_id > 0 # user_idが正数かを確認
 }
 
+allow {
+  input.parsed_path = ["server.GPRCServiceAPI","RegistUser"]
+  user_id_check
+}
+
+# 認証が必要になる処理
+rt = opa.runtime()
+jwt_cert_string = rt.env.JWT_CERT
+
+decoded_payload := payload {
+    io.jwt.verify_hs256(bearer_token, jwt_cert_string)
+    [_, payload, _] := io.jwt.decode(bearer_token)
+}
+
+bearer_token = t {
+    v := input.attributes.request.http.headers.authorization
+    startswith(v, "Bearer ")
+    t := substring(v, count("Bearer "), -1)
+}
+
+
+allow {
+  input.parsed_path = ["server.GPRCServiceAPI","ShowUser"]
+  decoded_payload.user_id == user_id_check
+}
+
+allow {
+  input.parsed_path = ["server.GPRCServiceAPI","ShowUsers"]
+  decoded_payload.admin
+}
